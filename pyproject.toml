@@ -1,0 +1,17 @@
+[project]
+name = "myapp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "googletrans==4.0.0rc1",
+    "networkx>=3.5",
+    "plotly>=6.3.0",
+    "streamlit>=1.49.1",
+]
+
+[tool.uv.workspace]
+members = [
+    "app-football",
+]
