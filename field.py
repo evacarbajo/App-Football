@@ -108,12 +108,15 @@ def draw_field(game_lineup: pd.DataFrame):
         mode="markers+text",
         text=players["player_name"],
         textposition="top center",
-        marker=dict(size=15, color="blue")
+        marker=dict(size=20, color="black"),
+        textfont=dict(
+        color="black"
+        )
     ))
 
     # Ajustes de layout
     fig.update_layout(
-        width=600, height=900,
+        width=600, height=625,
         xaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 100]),
         yaxis=dict(showgrid=False, zeroline=False, visible=False, range=[0, 100]),
         plot_bgcolor="green",
@@ -122,7 +125,7 @@ def draw_field(game_lineup: pd.DataFrame):
     )
 
     #PINTAR EL CAMPO
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=False)
 
 
 

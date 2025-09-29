@@ -3,13 +3,14 @@ import pandas as pd
 import data_loader as dl
 from googletrans import Translator
 import graph as gp
+import graph_st as gpst
+import sqlite3
 
 
 def main():
     
     col1, col2 = st.columns(2)
     
-
     with col1: 
         #FILTRAR JUGADORES CON TEXTO
         search_player = st.text_input("Escribe letras para filtrar jugadores")
@@ -31,13 +32,14 @@ def main():
     player = players_filtered.iloc[0]
 
     #FICHA PERSONAL DEL JUGADOR
-    st.write("**Ficha personal del jugador:**")
+    st.subheader("**Ficha personal del jugador:**")
 
-    col3, col4 = st.columns(2)
+    col3, col4 = st.columns([0.2,0.8], border=True)
 
     with col3:
         #Foto
-        st.image(player["image_url"],width=175)
+        st.write("\n")
+        st.image(player["image_url"])
 
     with col4:
         #Nombre
@@ -89,21 +91,27 @@ def main():
 
     player_id = players_filtered["player_id"]
 
+
     #VALOR DE MERCADO
-    st.write("**Evolución del valor de mercado:**")
+    st.subheader("Evolución del valor de mercado:")
     players_valuation_filtered = dl.player_valuations[dl.player_valuations["player_id"].isin(player_id)]
     players_valuation_filtered["date"] = pd.to_datetime(players_valuation_filtered["date"]).dt.date
     #st.dataframe(players_valuation_filtered[["date", "market_value_in_eur"]])
-    st.line_chart(players_valuation_filtered, x= "date", y="market_value_in_eur")
+    #st.line_chart(players_valuation_filtered, x= "date", y="market_value_in_eur")
+    container_market_value = st.container(border=True)
+    container_market_value.line_chart(players_valuation_filtered, 
+                                      x= "date", y="market_value_in_eur",
+                                       x_label= "Fecha", y_label="Valor de mercado(€)")
 
     #FILTRAR TRASPASOS DE ESE JUGADOR
-    st.write("**Trayectoria:**")
+    st.subheader("Trayectoria:")
     transfers_filtered = dl.transfers[dl.transfers["player_id"].isin(player_id)]
     if transfers_filtered.empty :
         st.write("No hay datos sobre la trayectoria del jugador")
     else:
         st.dataframe(transfers_filtered[["transfer_season","from_club_name", "to_club_name", "transfer_fee"]])
         gp.graph_transfers(transfers_filtered)
+        gpst.graph_transfers(transfers_filtered)
         
 
 
@@ -134,14 +142,14 @@ def main():
         )
         
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3, border=True)
 
     #GOLES
     #Opcion 1
     total_goals = appearances_filtered["goals"].sum()
     #st.write(f"Goles totales: {total_goals}")
     with col1:
-        st.metric(f"Goles totales:", total_goals)
+        st.metric(f"**Goles totales:**", total_goals)
 
     #Opción 2
     #game_goals = game_events_filtered[game_events_filtered["type"]== "Goals"]
@@ -152,13 +160,13 @@ def main():
     total_assists = appearances_filtered["assists"].sum()
     #st.write(f"Asistencias totales: {total_assists}")
     with col2:
-        st.metric(f"Asistencias totales:", total_assists)
+        st.metric(f"**Asistencias totales:**", total_assists)
 
     #GOLES POR MINUTO
     total_minutes = appearances_filtered["minutes_played"].sum()
     #st.write(f"Minutos totales: {total_minutes}")
     with col3: 
-        st.metric(f"Minutos totales:", total_minutes)
+        st.metric(f"**Minutos totales:**", total_minutes)
     goals_minutes = total_goals/total_minutes
     #st.write(f"Goles por minuto: {round(goals_minutes, 4)}")
 

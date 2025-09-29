@@ -59,10 +59,14 @@ def main():
             players_age
             .reset_index(drop=True)
             .sort_values(by="date_of_birth", ascending=False)
-            .head(10)         
+            .head(10)    
+            .rename(columns={
+                "name": "Nombre",
+                "age": "Edad"
+            })     
         )
         st.subheader(title)
-        st.dataframe(ranking_age[["name", "age"]], hide_index=True )
+        st.dataframe(ranking_age[["Nombre", "Edad"]], hide_index=True )
         
     
     else:
@@ -118,6 +122,7 @@ def main():
             .reset_index(drop=True)
             .sort_values(by="market_value_in_eur", ascending=False)
             .head(10)   
+            .rename(columns= {"name": "Nombre", "market_value_in_eur":"Valor de mercado(€)"})
             )
             st.subheader(title)
             st.dataframe(ranking_marketvalue, hide_index=True)
@@ -128,6 +133,7 @@ def main():
                 .reset_index()
                 .sort_values(by=ranking_sel, ascending=False)
                 .head(10)
+                .rename(columns= {"player_name" : "Nombre", "goals": "Goles", "assists": "Asistencias", "minutes_played": "Minutos jugados"})
             )
 
             st.subheader(title)

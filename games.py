@@ -22,23 +22,30 @@ def main():
     
 
     #NUMERO DE PARTIDOS POR COMPETICIÓN 
-    st.write(f"Número de partidos totales en {comp_sel} en {season_sel}: {len(games_filtered)}")
+    st.write(f"**Número de partidos totales en {comp_sel} en {season_sel}:** {len(games_filtered)}")
 
     #FILTRAR POR JORNADA
     round_option = games_filtered["round"].dropna().unique().tolist()
     round_sorted = sorted(round_option, key=lambda x: int(x.split(".")[0]))
-    round_sel = st.selectbox("Selecciona jornada", round_sorted)
+    round_sel = st.selectbox("**Selecciona jornada**", round_sorted)
     games_filtered = games_filtered[games_filtered["round"] == round_sel]
 
 
+   
     
     selected_game = st.dataframe(
-        games_filtered[["date", "home_club_name", "away_club_name" ,"aggregate"]],
+        games_filtered[["date", "home_club_name", "away_club_name" ,"aggregate"]].rename(columns={
+        "date": "Fecha",
+        "home_club_name": "Equipo local",
+        "away_club_name": "Equipo visitante",
+        "aggregate": "Resultado"}),
         use_container_width=True,
         hide_index=True,
         on_select="rerun",  # para seleccionar fila
-        selection_mode="single-row"
+        selection_mode="single-row",    
     )
+    
+    
 
     
 
@@ -59,22 +66,28 @@ def main():
             games_lineup_filtered = games_lineup_filtered[games_lineup_filtered["club_id"].isin(team_sel["club_id"])]
             
             #Alineación
-            st.write("Alineación del partido:")
-            st.dataframe(games_lineup_filtered[["player_id","player_name", "type", "position", "number"]])
+            st.subheader("Alineación del partido:")
+            st.dataframe(games_lineup_filtered[["player_name", "type", "position", "number"]].rename(columns={
+                "player_name": "Nombre",
+                "type": "Titularidad", 
+                "position": "Posición", 
+                "number": "Dorsal"
+            })
+                , hide_index=True)
 
             #Estructura alineación
             game = games_filtered.iloc[row_idx] 
             team_sel_name = team_sel["name"].iloc[0] 
             if team_sel_name == game["home_club_name"]:       
-                st.write(f"Estructura alineación: {game['home_club_formation']}")
+                st.write(f"**Estructura alineación:** {game['home_club_formation']}")
             else:
-                st.write(f"Estructura alineación: {game['away_club_formation']}")
+                st.write(f"**Estructura alineación:** {game['away_club_formation']}")
 
             #Dibujar campo con jugadores
             fd.draw_field(games_lineup_filtered)
         else:
             
-            st.write("Alineación del partido:")
+            st.subheader("Alineación del partido:")
             st.write("No hay información de la alineación de este partido")
 
         
