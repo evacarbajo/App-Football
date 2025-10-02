@@ -4,22 +4,16 @@ import data_loader as dl
 from googletrans import Translator
 
 def main():
-    appearances_filtered = dl.appearances.copy()
-    game_events_filtered = dl.game_events.copy()
+    appearances_filtered = dl.load_data("SELECT * FROM appearances")
+    
 
-    player_valuations_year = dl.player_valuations.copy()
+    player_valuations_year = dl.load_data("SELECT player_id, market_value_in_eur, date FROM player_valuations")
     player_valuations_year["date"] = pd.to_datetime(player_valuations_year["date"])
     
     #AÑADE COLUMNA SEASON SOLO CON EL PRIMER AÑO DE LA TEMPORADA
     player_valuations_year["season"] = player_valuations_year["date"].apply(
         lambda x: f"{x.year}" if x.month >= 8 else f"{x.year-1}"
     )
-
-    #AÑADE COLUMNA SEASON AÑO1/AÑO2
-    #-------------------------------
-    #player_valuations_year["season"] = player_valuations_year["date"].apply(
-    #    lambda x: f"{x.year}-{x.year+1}" if x.month >= 8 else f"{x.year-1}-{x.year}")
-    #-------------------------------
 
     col1,col2 = st.columns(2)
 
@@ -46,7 +40,7 @@ def main():
     if ranking_sel == "players_age":
        
      #RANKING JUGADORES MÁS JOVENES
-        players_age = dl.players.copy()
+        players_age = dl.load_data("SELECT player_id, name, date_of_birth FROM players")
         players_age["date_of_birth"] = pd.to_datetime(players_age["date_of_birth"], errors="coerce")
         # Fecha actual
         today = pd.to_datetime("today")
@@ -72,7 +66,8 @@ def main():
     else:
 
         #FILTRO DE TEMPORADA
-        season_options = ["Todas"] + sorted(set(map(str, dl.games["season"].dropna().tolist() +
+        season_games = dl.load_data("SELECT season FROM games")
+        season_options = ["Todas"] + sorted(set(map(str, season_games["season"].dropna().tolist() +
                                                 player_valuations_year["season"].dropna().tolist())))
 
         with col2:
@@ -80,25 +75,22 @@ def main():
         
         if season_sel == "Todas":
             
-            games_filtered = dl.games.copy()
-            
-            valuations_filtered = player_valuations_year.copy()
             valuations_filtered = pd.merge(
-                valuations_filtered[["player_id", "market_value_in_eur"]],
-                dl.players[["player_id", "name"]],
+                player_valuations_year[["player_id", "market_value_in_eur"]],
+                 dl.load_data("SELECT player_id, name FROM players"),
                 left_on="player_id",
                 right_on="player_id",
             )
             
         else:
+
+            appearances_filtered = dl.load_data(f""" 
+                    SELECT a.player_name, a.goals, a.assists, a.minutes_played, a.game_id, g.game_id, g.season
+                    FROM appearances a
+                    JOIN games g ON a.game_id = g.game_id
+                    WHERE g.season == {season_sel}
+                    """)
             
-            games_filtered = dl.games[dl.games["season"] == int(season_sel)]
-            appearances_filtered = pd.merge(
-                games_filtered,
-                dl.appearances,
-                left_on="game_id",
-                right_on="game_id",
-            )
             
             
 
@@ -106,7 +98,7 @@ def main():
             valuations_filtered = player_valuations_year[player_valuations_year["season"] == season_sel]
             valuations_filtered = pd.merge(
                 valuations_filtered[["player_id", "market_value_in_eur"]],
-                dl.players[["player_id", "name"]],
+                dl.load_data("SELECT player_id, name FROM players"),
                 left_on="player_id",
                 right_on="player_id",
             )
@@ -133,11 +125,19 @@ def main():
                 .reset_index()
                 .sort_values(by=ranking_sel, ascending=False)
                 .head(10)
-                .rename(columns= {"player_name" : "Nombre", "goals": "Goles", "assists": "Asistencias", "minutes_played": "Minutos jugados"})
             )
 
             st.subheader(title)
-            st.dataframe(ranking, hide_index=True)
+            st.dataframe(
+                ranking,
+                hide_index=True,
+                column_config={
+                    "player_name" : "Nombre", 
+                    "goals": "Goles", 
+                    "assists": "Asistencias", 
+                    "minutes_played": "Minutos jugados"
+                }
+                )
 
 
         
