@@ -181,66 +181,48 @@ def main():
                 "Fin contrato",
                 format="calendar"
             )
-            
-            
            },
            hide_index=True,
            row_height=100   
         )
 
-        col_val, col_goals = st.columns(2)
+        col_val, col_goals = st.columns(2, border=True)
 
         #BAR CHAR DEL VALOR DE MERCADO 
-        df = players_sel.set_index("name")[["market_value_in_eur"]]
+        val_mercado = players_sel.set_index("name")[["market_value_in_eur"]]
         with col_val:
             st.subheader("**Comparación del valor de mercado:**")
-            st.bar_chart(df)
-    
+            st.bar_chart(val_mercado)
+
+       
 
 
+        #BAR CHAR GOLES
+        goals = pd.merge(
+            players_sel[["player_id", "name"]],
+            dl.load_data("SELECT player_id, goals, game_id FROM appearances"),
+            on="player_id"               
+        )
+        season_options = pd.merge(
+                    dl.load_data("SELECT season, game_id FROM games WHERE season IS NOT NULL ORDER BY season"),
+                    goals[["game_id"]], 
+                    on = "game_id"            
+                    )["season"].unique().tolist()
+        season_options = ["Todas"] + season_options
+        with col_goals:
+            st.subheader("Comparación goles:")
+            season_sel = st.selectbox("Selecciona temporada", season_options, key="transfers_season")
+        if season_sel != "Todas":
+            goals = pd.merge(
+                goals,
+                dl.load_data(f"SELECT game_id, season FROM games WHERE season = {season_sel}"),
+                on= "game_id"                
+                )
+        total_goals = goals.groupby(
+                ["player_id", "name"], as_index=False
+                    )["goals"].sum()
+        chart_goals = total_goals.set_index("name")[["goals"]]
 
-
-    """elif num_sel == 2:
-        col_j1, col_j2= st.columns(2)
-
-        
-    elif num_sel == 3:
-        col_j1, col_j2, col_j3 = st.columns(3)
-
-        with col_j1:
-            st.write(players_sel["name"].iloc[0])
-
-        with col_j2:
-            st.write(players_sel["name"].iloc[1])
-        
-        with col_j3:
-            st.write(players_sel["name"].iloc[2])
-
-    else:
-        col_j1, col_j2, col_j3, col_j4 = st.columns(4)
-
-        with col_j1:
-            st.write(players_sel["name"].iloc[0])
-
-        with col_j2:
-            st.write(players_sel["name"].iloc[1])
-        
-        with col_j3:
-            st.write(players_sel["name"].iloc[2])
-
-        with col_j4:
-            st.write(players_sel["name"].iloc[3])
-        
-
-    
-    df = players_sel.set_index("name")[["market_value_in_eur"]]
-
-    col_j1, col_j3= st.columns(2)
-
-   
- 
-    #JUGADOR
-    #player = players_sel.iloc[0]"""
-
-   
+        with col_goals:
+            st.bar_chart(chart_goals)
 
