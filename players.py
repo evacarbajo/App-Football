@@ -11,25 +11,28 @@ def main():
     
     col1, col2 = st.columns(2)
     
+
     with col1: 
         #FILTRAR JUGADORES CON TEXTO
         search_player = st.text_input("Escribe letras para filtrar jugadores")
 
     # FILTRAR LA LISTA DE JUGADORES SEGÚN EL TEXTO INTRODUCIDO
-    players_filtered = dl.players[
-        dl.players["name"].str.contains(search_player, case=False, na=False)
-    ]["name"].sort_values().unique()
+    players_filtered = dl.load_data(
+        f"""
+        SELECT name, player_id FROM players
+        WHERE name LIKE '%{search_player}%'
+        ORDER BY name
+        """
+    )["name"].unique()
 
     with col2:
         #SELECTBOX CON JUGADORES FILTRADOS
         player_sel = st.selectbox("Selecciona un jugador", players_filtered)
 
-    #FILTRAR JUGADOR
-    players_filtered = dl.players[dl.players["name"] == player_sel]
-
-    
     #JUGADOR
-    player = players_filtered.iloc[0]
+    player = dl.load_data(
+        f"SELECT * FROM players WHERE name = '{player_sel}'"
+    ).iloc[0]
 
     #FICHA PERSONAL DEL JUGADOR
     st.subheader("**Ficha personal del jugador:**")
@@ -60,6 +63,7 @@ def main():
         st.write("**Pais de nacimiento:**", trad.text)
 
         #Altura
+        player["height_in_cm"] = pd.to_numeric(player["height_in_cm"], errors="coerce")
         st.write(f"**Altura:**  {player['height_in_cm']/100} m")
         st.write(f"**Club actual:**  {player['current_club_name']}")
 
@@ -89,15 +93,15 @@ def main():
 
     
 
-    player_id = players_filtered["player_id"]
+    player_id = player["player_id"]
 
 
     #VALOR DE MERCADO
     st.subheader("Evolución del valor de mercado:")
-    players_valuation_filtered = dl.player_valuations[dl.player_valuations["player_id"].isin(player_id)]
+    players_valuation_filtered = dl.load_data(
+        f"SELECT date, market_value_in_eur FROM player_valuations WHERE player_id = {player_id}"
+    )
     players_valuation_filtered["date"] = pd.to_datetime(players_valuation_filtered["date"]).dt.date
-    #st.dataframe(players_valuation_filtered[["date", "market_value_in_eur"]])
-    #st.line_chart(players_valuation_filtered, x= "date", y="market_value_in_eur")
     container_market_value = st.container(border=True)
     container_market_value.line_chart(players_valuation_filtered, 
                                       x= "date", y="market_value_in_eur",
@@ -105,7 +109,13 @@ def main():
 
     #FILTRAR TRASPASOS DE ESE JUGADOR
     st.subheader("Trayectoria:")
-    transfers_filtered = dl.transfers[dl.transfers["player_id"].isin(player_id)]
+    transfers_filtered = dl.load_data(
+        f"""
+        SELECT *
+        FROM transfers
+        WHERE player_id = {player_id}
+        """
+    )
     if transfers_filtered.empty :
         st.write("No hay datos sobre la trayectoria del jugador")
     else:
@@ -116,74 +126,40 @@ def main():
 
 
 
-    appearances_filtered = dl.appearances[dl.appearances["player_id"].isin(player_id)]
-    game_events_filtered = dl.game_events[dl.game_events["player_id"].isin(player_id)]
+    appearances_filtered = dl.load_data(f"SELECT * FROM appearances WHERE player_id = {player_id}")
 
     #FILTRAR POR AÑOS
-    season_options = sorted(dl.games["season"].dropna().unique().tolist())
+    season_options = dl.load_data("SELECT DISTINCT season FROM games WHERE season IS NOT NULL ORDER BY season")["season"].tolist()
     season_options = ["Todas"] + season_options
     season_sel = st.selectbox("Selecciona temporada", season_options, key="player_season")
-    if season_sel == "Todas":
-        games_filtered = dl.games.copy()
-        
-    else:
-        games_filtered = dl.games[dl.games["season"] == season_sel]
-        appearances_filtered = pd.merge(
-            games_filtered,
-            appearances_filtered,
-            left_on="game_id",
-            right_on="game_id",
-        )
-        game_events_filtered = pd.merge(
-            games_filtered,
-            game_events_filtered,
-            left_on="game_id",
-            right_on="game_id",
+    if season_sel != "Todas":
+        appearances_filtered = dl.load_data(
+            f"""
+            SELECT a.*
+            FROM appearances a
+            JOIN games g ON a.game_id = g.game_id
+            WHERE a.player_id = {player_id}
+              AND g.season = '{season_sel}'
+            """
         )
         
 
     col1, col2, col3 = st.columns(3, border=True)
 
     #GOLES
-    #Opcion 1
     total_goals = appearances_filtered["goals"].sum()
-    #st.write(f"Goles totales: {total_goals}")
     with col1:
         st.metric(f"**Goles totales:**", total_goals)
 
-    #Opción 2
-    #game_goals = game_events_filtered[game_events_filtered["type"]== "Goals"]
-    #total_goals = len(game_goals)
-    #st.write(f"Goles totales: {total_goals}")
 
     #ASISTENCIAS
     total_assists = appearances_filtered["assists"].sum()
-    #st.write(f"Asistencias totales: {total_assists}")
     with col2:
         st.metric(f"**Asistencias totales:**", total_assists)
 
     #GOLES POR MINUTO
     total_minutes = appearances_filtered["minutes_played"].sum()
-    #st.write(f"Minutos totales: {total_minutes}")
     with col3: 
         st.metric(f"**Minutos totales:**", total_minutes)
     goals_minutes = total_goals/total_minutes
-    #st.write(f"Goles por minuto: {round(goals_minutes, 4)}")
-
-   
-
-   
-   
-   
-
-
-
-
-
-
-
-
-
-
-
 

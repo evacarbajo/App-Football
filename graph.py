@@ -42,13 +42,22 @@ def graph_transfers(transfers: pd.DataFrame):
         x0, y0 = x_positions[i], y_positions[i]
         x1, y1 = x_positions[i+1], y_positions[i+1]
 
+        #Convertir a float transfer fee
+        if row.transfer_fee is None:
+            fee_text = "N/A"
+        else:
+            try:
+                fee_text = f"€{float(row.transfer_fee):,.0f}"
+            except ValueError:
+                fee_text = row.transfer_fee
+
         # Línea recta
         edge_traces.append(go.Scatter(
             x=[x0, x1],
             y=[y0, y1],
             mode='lines',
             line=dict(width=2, color=edge_color),
-            text=f"{row.from_club_name} → {row.to_club_name}<br>Temporada: {row.transfer_season}<br>Precio: €{row.transfer_fee:,.0f}",
+            text=f"{row.from_club_name} → {row.to_club_name}<br>Temporada: {row.transfer_season}<br>Precio:  {fee_text}",
             hoverinfo='none'
         ))
 
@@ -60,7 +69,7 @@ def graph_transfers(transfers: pd.DataFrame):
             mode='markers',
             marker=dict(size=20, color=edge_color, opacity=0),
             hoverinfo='text',
-            text=f"{row.from_club_name} → {row.to_club_name}<br>Temporada: {row.transfer_season}<br>Precio: €{row.transfer_fee:,.0f}"
+            text=f"{row.from_club_name} → {row.to_club_name}<br>Temporada: {row.transfer_season}<br>Precio: {fee_text}"
         ))
 
         # Texto de temporada encima de la arista

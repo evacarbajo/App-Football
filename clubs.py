@@ -11,25 +11,38 @@ def main():
 
     with col1:
         #FILTRAR CLUBS CON TEXTO
-        search_player = st.text_input("Escribe letras para filtrar equipos")
+        search_club = st.text_input("Escribe letras para filtrar equipos")
 
     # FILTRAR LA LISTA DE CLUBS SEGÚN EL TEXTO INTRODUCIDO
-    clubs_filtered = dl.clubs[
-        dl.clubs["name"].str.contains(search_player, case=False, na=False)
-    ]["name"].sort_values().unique()
+    clubs_filtered = dl.load_data(
+        f"""
+        SELECT name, club_id FROM clubs
+        WHERE name LIKE '%{search_club}%'
+        ORDER BY name
+        """
+    )["name"].unique()
 
     with col2:
         #SELECTBOX CON CLUBS FILTRADOS
         club_sel = st.selectbox("Selecciona un club", clubs_filtered)
     
-    clubs_filtered = dl.clubs[dl.clubs["name"] == club_sel]
+    clubs_filtered = dl.load_data(f""" 
+            SELECT club_id, name, domestic_competition_id,stadium_name, stadium_seats, squad_size, average_age
+            FROM clubs
+            WHERE name = '{club_sel}'
+            """)
 
     st.subheader(f"Ficha del {club_sel}:")
 
     container = st.container(width=450, height="stretch", border= True)
 
     #COMPETICIÓN DOMÉSTICA
-    competition_filtered = dl.competitions[dl.competitions["competition_id"] == clubs_filtered["domestic_competition_id"].iloc[0]]
+    domestic_comp_club = clubs_filtered["domestic_competition_id"].iloc[0]
+    competition_filtered = dl.load_data(F"""
+                SELECT competition_id, name
+                FROM competitions
+                WHERE competition_id = '{domestic_comp_club}'
+                """)
     competition_name = competition_filtered['name'].iloc[0]
     container.write(f"**Competición doméstica:** {competition_name}")
 
@@ -50,14 +63,14 @@ def main():
 
     #FILTRAR PARTIDOS DEL CLUB
     club_id = clubs_filtered["club_id"].iloc[0]
-    club_games_filtered = dl.club_games[dl.club_games["club_id"] == club_id]
-
-    games_filtered = pd.merge(
-                club_games_filtered,
-                dl.games,
-                left_on="game_id",
-                right_on="game_id",
-            )
+    games_filtered =  dl.load_data(f"""
+            SELECT cg.game_id, cg.club_id, cg.is_win, cg.hosting, g.season, g.competition_id, date
+            FROM club_games cg
+            JOIN games g ON cg.game_id = g.game_id
+            WHERE cg.club_id = {club_id}
+                    """)            
+    
+    
     
     #FILTRAR POR TEMPORADA
     season_options = ["Todas"] + games_filtered["season"].unique().tolist()
@@ -66,16 +79,48 @@ def main():
     if season_sel != "Todas":
         games_filtered = games_filtered[games_filtered["season"] == season_sel]
 
+    
     #FILTRAR POR COMPETICIÓN 
-    comp_filtered = dl.competitions[dl.competitions["competition_id"].isin(games_filtered["competition_id"])]  
+    comp_filtered = dl.load_data(f"""
+        SELECT DISTINCT c.competition_id, c.name
+        FROM competitions c
+        JOIN (
+            SELECT g.competition_id
+            FROM club_games cg
+            JOIN games g ON cg.game_id = g.game_id
+            WHERE cg.club_id = {club_id}                             
+        ) AS fg
+        ON c.competition_id = fg.competition_id
+    """)
     comp_options = ["Todas"] + comp_filtered["name"].unique().tolist()
     with col4:
         comp_sel = st.selectbox("Selecciona una competición:", comp_options , key="clubs_comp")
     if comp_sel != "Todas":
         comp = comp_filtered[comp_filtered["name"] == comp_sel]
         games_filtered = games_filtered[games_filtered["competition_id"] == comp["competition_id"].iloc[0]]
-        
-    #st.subheader(f"Analisis de los partidos de la competición {comp_sel} en la temporada {season_sel}:")
+
+
+   #FILTRAR POR RANGO DE FECHAS **Por defecto rango de temporada completa
+    games_filtered["date_time"] = pd.to_datetime(games_filtered["date"]).sort_values()
+    min_date = games_filtered["date_time"].min()
+    max_date = games_filtered["date_time"].max()
+
+    date_range = st.date_input(
+        "Selecciona rango de fechas",
+        (min_date, max_date),
+        min_value= min_date,
+        max_value= max_date,
+        format="DD.MM.YYYY"
+        )
+
+    start_date, end_date = date_range
+
+
+    games_filtered = games_filtered[
+    (games_filtered["date_time"] >= pd.to_datetime(start_date)) &
+    (games_filtered["date_time"] <= pd.to_datetime(end_date))
+    ]
+   
     st.subheader("Análisis de los partidos:")
     
    
@@ -162,7 +207,12 @@ def main():
 
     
     #MINUTOS EN LOS QUE RECIBEN MÁS GOLES
-    games_events_filtered = dl.game_events[dl.game_events["club_id"] == club_id]
+    games_events_filtered = dl.load_data(f"""
+                SELECT game_id, type, minute
+                FROM game_events
+                WHERE club_id = {club_id}
+                AND type = 'Goals'
+                """)
     
     games_events_filtered = pd.merge(
                 games_events_filtered,
@@ -171,8 +221,7 @@ def main():
                 right_on="game_id",
             )
     
-    game_goals = games_events_filtered[games_events_filtered["type"]== "Goals"]
-    goals_minutes = game_goals["minute"].value_counts()
+    goals_minutes = games_events_filtered["minute"].value_counts()
     st.subheader(f"Minutos en los que anota mas goles el {club_sel}")
     st.bar_chart(goals_minutes, x_label = "Minutos", y_label = "Goles")
    

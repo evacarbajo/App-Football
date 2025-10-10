@@ -7,15 +7,15 @@ def main():
     col1, col2 = st.columns(2)
 
     # SELECTOR DE COMPETICIÓN FILTRADO POR MAJOR COMPETITIONS
-    major_competitions = dl.competitions[dl.competitions["is_major_national_league"] == True]
+    major_competitions = dl.load_data("SELECT competition_id, name  FROM competitions WHERE is_major_national_league = 'true'")
     with col1:
         comp_sel = st.selectbox("Selecciona una competición", major_competitions["name"].unique())
     comp_id = major_competitions.loc[major_competitions["name"] == comp_sel, "competition_id"].values[0]
 
-    games_filtered = dl.games[dl.games["competition_id"] == comp_id]
+    games_filtered = dl.load_data(f"SELECT * FROM games WHERE competition_id = '{comp_id}'")
 
     #FILTRAR POR AÑOS
-    season_options = sorted(dl.games["season"].dropna().unique().tolist())
+    season_options = sorted(games_filtered["season"].dropna().unique().tolist())
     with col2:
         season_sel = st.selectbox("Selecciona temporada", season_options, key="game_season")
     games_filtered = games_filtered[games_filtered["season"] == season_sel]
@@ -31,22 +31,20 @@ def main():
     games_filtered = games_filtered[games_filtered["round"] == round_sel]
 
 
-   
-    
+   #Mostrar partidos 
     selected_game = st.dataframe(
-        games_filtered[["date", "home_club_name", "away_club_name" ,"aggregate"]].rename(columns={
-        "date": "Fecha",
-        "home_club_name": "Equipo local",
-        "away_club_name": "Equipo visitante",
-        "aggregate": "Resultado"}),
+        games_filtered[["date", "home_club_name", "away_club_name" ,"aggregate"]],
         use_container_width=True,
         hide_index=True,
         on_select="rerun",  # para seleccionar fila
         selection_mode="single-row",    
+        column_config={
+            "date": "Fecha",
+            "home_club_name": "Equipo local",
+            "away_club_name": "Equipo visitante",
+            "aggregate": "Resultado"
+        }
     )
-    
-    
-
     
 
 
@@ -57,28 +55,32 @@ def main():
         
 
         #FILTRAR POR EQUIPO
-        games_lineup_filtered = dl.game_lineups[dl.game_lineups["game_id"] == game_id]
+        games_lineup_filtered = dl.load_data(f"""
+                    SELECT gl.player_name, gl.type, gl.position, gl.number, gl.club_id, c.name AS club_name
+                    FROM game_lineups gl
+                    JOIN clubs c ON gl.club_id = c.club_id
+                    WHERE gl.game_id = {game_id}        
+                    """)
         if not games_lineup_filtered.empty:
-            teams_id = games_lineup_filtered["club_id"].unique()
-            clubs_names = dl.clubs[dl.clubs["club_id"].isin(teams_id)]
-            team_sel = st.selectbox("Selecciona un equipo para mostrar alineación", clubs_names["name"])
-            team_sel = clubs_names[clubs_names["name"]== team_sel]
-            games_lineup_filtered = games_lineup_filtered[games_lineup_filtered["club_id"].isin(team_sel["club_id"])]
+            clubs_names = games_lineup_filtered["club_name"].unique().tolist()
+            team_sel = st.selectbox("Selecciona un equipo para mostrar alineación", clubs_names)
+            games_lineup_filtered = games_lineup_filtered[games_lineup_filtered["club_name"] == team_sel]
             
             #Alineación
             st.subheader("Alineación del partido:")
-            st.dataframe(games_lineup_filtered[["player_name", "type", "position", "number"]].rename(columns={
-                "player_name": "Nombre",
-                "type": "Titularidad", 
-                "position": "Posición", 
-                "number": "Dorsal"
-            })
-                , hide_index=True)
+            st.dataframe(games_lineup_filtered[["player_name", "type", "position", "number"]],
+                hide_index=True,
+                column_config={
+                    "player_name": "Nombre",
+                    "type": "Titularidad", 
+                    "position": "Posición", 
+                    "number": "Dorsal"
+                }
+                )
 
             #Estructura alineación
             game = games_filtered.iloc[row_idx] 
-            team_sel_name = team_sel["name"].iloc[0] 
-            if team_sel_name == game["home_club_name"]:       
+            if team_sel == game["home_club_name"]:       
                 st.write(f"**Estructura alineación:** {game['home_club_formation']}")
             else:
                 st.write(f"**Estructura alineación:** {game['away_club_formation']}")

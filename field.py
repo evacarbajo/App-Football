@@ -18,10 +18,10 @@ def draw_field(game_lineup: pd.DataFrame):
     # COORDENADAS VERTICALES SEGÚN POSICIÓN
     position_coords = {
         "Goalkeeper": [(50, 5)],
-        "Left-Back": [(15, 25)],
+        "Left-Back": [(15, 25),(35, 25)],
         "Centre-Back": [(35, 25), (65, 25),(85, 25)],
         "Right-Back": [(85, 25)],
-        "Attacking Midfield": [(50, 65)],
+        "Attacking Midfield": [(50, 65), (60, 55)],
         "Central Midfield": [(40, 55), (60, 55)],
         "Right Midfield": [(80, 55)],
         "Left Midfield": [(20,55)],

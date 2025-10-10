@@ -5,6 +5,7 @@ import rankings
 import clubs
 import transfers
 
+
 #USAR TODO ANCHO DE PANTALLA
 st.set_page_config(page_title="App Fútbol", layout="wide")
 
