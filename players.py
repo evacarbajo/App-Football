@@ -19,11 +19,13 @@ def main():
     # FILTRAR LA LISTA DE JUGADORES SEGÚN EL TEXTO INTRODUCIDO
     players_filtered = dl.load_data(
         f"""
-        SELECT name, player_id FROM players
+        SELECT name, player_id FROM football.`gold-football-data`.players_gold
         WHERE name LIKE '%{search_player}%'
         ORDER BY name
         """
     )["name"].unique()
+
+
 
     with col2:
         #SELECTBOX CON JUGADORES FILTRADOS
@@ -31,7 +33,7 @@ def main():
 
     #JUGADOR
     player = dl.load_data(
-        f"SELECT * FROM players WHERE name = '{player_sel}'"
+        f"SELECT * FROM football.`gold-football-data`.players_gold WHERE name = '{player_sel}'"
     ).iloc[0]
 
     #FICHA PERSONAL DEL JUGADOR
@@ -99,7 +101,7 @@ def main():
     #VALOR DE MERCADO
     st.subheader("Evolución del valor de mercado:")
     players_valuation_filtered = dl.load_data(
-        f"SELECT date, market_value_in_eur FROM player_valuations WHERE player_id = {player_id}"
+        f"SELECT date, market_value_in_eur FROM football.`gold-football-data`.player_valuations_gold WHERE player_id = {player_id}"
     )
     players_valuation_filtered["date"] = pd.to_datetime(players_valuation_filtered["date"]).dt.date
     container_market_value = st.container(border=True)
@@ -112,7 +114,7 @@ def main():
     transfers_filtered = dl.load_data(
         f"""
         SELECT *
-        FROM transfers
+        FROM football.`gold-football-data`.transfers_gold
         WHERE player_id = {player_id}
         """
     )
@@ -126,20 +128,19 @@ def main():
 
 
 
-    appearances_filtered = dl.load_data(f"SELECT * FROM appearances WHERE player_id = {player_id}")
+    appearances_filtered = dl.load_data(f"SELECT * FROM football.`gold-football-data`.appearances_gold WHERE player_id = {player_id}")
 
     #FILTRAR POR AÑOS
-    season_options = dl.load_data("SELECT DISTINCT season FROM games WHERE season IS NOT NULL ORDER BY season")["season"].tolist()
+    season_options = dl.load_data("SELECT DISTINCT season FROM football.`gold-football-data`.appearances_gold WHERE season IS NOT NULL ORDER BY season")["season"].tolist()
     season_options = ["Todas"] + season_options
     season_sel = st.selectbox("Selecciona temporada", season_options, key="player_season")
     if season_sel != "Todas":
         appearances_filtered = dl.load_data(
             f"""
             SELECT a.*
-            FROM appearances a
-            JOIN games g ON a.game_id = g.game_id
+            FROM football.`gold-football-data`.appearances_gold a
             WHERE a.player_id = {player_id}
-              AND g.season = '{season_sel}'
+              AND a.season = '{season_sel}'
             """
         )
         
