@@ -5,7 +5,7 @@ import rankings
 import clubs
 import transfers
 
-st.logo("footballs.jpg")
+st.logo("/Users/evacarbajo/footballs.jpg")
 
 #USAR TODO ANCHO DE PANTALLA
 st.set_page_config(page_title="App Fútbol", layout="wide")
@@ -18,7 +18,7 @@ with col1:
 
 
 #CREAR PESTAÑAS
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Jugadores", "Partidos", "Rankings", "Equipos", "Fichajes"])
+tab1, tab2, tab3, tab4= st.tabs(["Jugadores", "Partidos", "Rankings", "Equipos"])
 
 
 with tab1:
@@ -38,7 +38,3 @@ with tab3:
 with tab4:
     st.title("Equipos")
     clubs.main()
-
-with tab5:
-    st.title("Fichajes")
-    transfers.main()
