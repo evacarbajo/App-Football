@@ -30,6 +30,7 @@ def main():
     round_sorted = sorted(round_option, key=lambda x: int(x.split(".")[0]))
     round_sel = st.selectbox("**Selecciona jornada**", round_sorted)
     games_filtered = games_filtered[games_filtered["round"] == round_sel]
+    games_filtered = games_filtered.sort_values(by="round").reset_index(drop=True)
 
 
    #Mostrar partidos 
