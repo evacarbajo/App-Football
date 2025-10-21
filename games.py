@@ -7,12 +7,13 @@ def main():
     col1, col2 = st.columns(2)
 
     # SELECTOR DE COMPETICIÓN FILTRADO POR MAJOR COMPETITIONS
-    major_competitions = dl.load_data("SELECT competition_id, name  FROM competitions WHERE is_major_national_league = 'true'")
+    major_competitions = dl.load_data("SELECT competition_id, competition_name  FROM football.`gold-football-data`.games_gold WHERE is_major_national_league = 'true'")
     with col1:
-        comp_sel = st.selectbox("Selecciona una competición", major_competitions["name"].unique())
-    comp_id = major_competitions.loc[major_competitions["name"] == comp_sel, "competition_id"].values[0]
+        comp_sel = st.selectbox("Selecciona una competición", major_competitions["competition_name"].unique())
+    comp_id = major_competitions.loc[major_competitions["competition_name"] == comp_sel, "competition_id"].values[0]
 
-    games_filtered = dl.load_data(f"SELECT * FROM games WHERE competition_id = '{comp_id}'")
+    games_filtered = dl.load_data(f"SELECT * FROM football.`gold-football-data`.games_gold WHERE competition_id = '{comp_id}'")
+
 
     #FILTRAR POR AÑOS
     season_options = sorted(games_filtered["season"].dropna().unique().tolist())
@@ -56,10 +57,9 @@ def main():
 
         #FILTRAR POR EQUIPO
         games_lineup_filtered = dl.load_data(f"""
-                    SELECT gl.player_name, gl.type, gl.position, gl.number, gl.club_id, c.name AS club_name
-                    FROM game_lineups gl
-                    JOIN clubs c ON gl.club_id = c.club_id
-                    WHERE gl.game_id = {game_id}        
+                    SELECT player_name, type, position, number, club_id, club_name
+                    FROM football.`gold-football-data`.game_lineups_gold
+                    WHERE game_id = {game_id}        
                     """)
         if not games_lineup_filtered.empty:
             clubs_names = games_lineup_filtered["club_name"].unique().tolist()

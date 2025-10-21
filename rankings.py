@@ -4,16 +4,11 @@ import data_loader as dl
 from googletrans import Translator
 
 def main():
-    appearances_filtered = dl.load_data("SELECT * FROM appearances")
+    appearances_filtered = dl.load_data("SELECT * FROM football.`gold-football-data`.appearances_gold")
     
 
-    player_valuations_year = dl.load_data("SELECT player_id, market_value_in_eur, date FROM player_valuations")
-    player_valuations_year["date"] = pd.to_datetime(player_valuations_year["date"])
+    #player_valuations_year = dl.load_data("SELECT player_id, market_value_in_eur, season FROM football.`gold-football-data`.player_valuations_gold")
     
-    #AÑADE COLUMNA SEASON SOLO CON EL PRIMER AÑO DE LA TEMPORADA
-    player_valuations_year["season"] = player_valuations_year["date"].apply(
-        lambda x: f"{x.year}" if x.month >= 8 else f"{x.year-1}"
-    )
 
     col1,col2 = st.columns(2)
 
@@ -40,15 +35,7 @@ def main():
     if ranking_sel == "players_age":
        
      #RANKING JUGADORES MÁS JOVENES
-        players_age = dl.load_data("SELECT player_id, name, date_of_birth FROM players")
-        players_age["date_of_birth"] = pd.to_datetime(players_age["date_of_birth"], errors="coerce")
-        # Fecha actual
-        today = pd.to_datetime("today")
-        # Calcular edad
-        players_age["age"] = players_age["date_of_birth"].apply(
-            lambda x: today.year - x.year - ((today.month, today.day) < (x.month, x.day))
-        )
-        players_age["date_of_birth"] = players_age["date_of_birth"].dt.date
+        players_age = dl.load_data("SELECT player_id, name, date_of_birth, age FROM football.`gold-football-data`.players_gold")
         ranking_age = (
             players_age
             .reset_index(drop=True)
@@ -66,63 +53,82 @@ def main():
     else:
 
         #FILTRO DE TEMPORADA
-        season_games = dl.load_data("SELECT season FROM games")
-        season_options = ["Todas"] + sorted(set(map(str, season_games["season"].dropna().tolist() +
-                                                player_valuations_year["season"].dropna().tolist())))
+        
+        if ranking_sel == "market_value":
+            seasons = dl.load_data("""
+                        SELECT DISTINCT season
+                        FROM football.`gold-football-data`.player_valuations_gold
+                        WHERE season IS NOT NULL
+                        ORDER BY season
+                        """)
+            season_options = ["Todas"] + seasons["season"].astype(str).tolist()
+        else:
+
+    
+            seasons = dl.load_data("""
+                        SELECT DISTINCT season
+                        FROM football.`gold-football-data`.games_gold
+                        WHERE season IS NOT NULL
+                        ORDER BY season
+                        """)
+            season_options = ["Todas"] + seasons["season"].astype(str).tolist()
+        
 
         with col2:
             season_sel = st.selectbox("Selecciona temporada:", season_options, key="ranking_season")
         
         if season_sel == "Todas":
             
-            valuations_filtered = pd.merge(
-                player_valuations_year[["player_id", "market_value_in_eur"]],
-                 dl.load_data("SELECT player_id, name FROM players"),
-                left_on="player_id",
-                right_on="player_id",
-            )
+            valuations_filtered = dl.load_data("""
+                                                SELECT player_name,
+                                                MAX(market_value_in_eur) AS market_value_in_eur
+                                                FROM football.`gold-football-data`.player_valuations_gold
+                                                GROUP BY player_name
+                                                ORDER BY market_value_in_eur DESC
+                                                LIMIT 10
+                                                """)
+            #valuations_filtered = player_valuations_year[["player_id", "market_value_in_eur"]]
+        
             
         else:
 
             appearances_filtered = dl.load_data(f""" 
-                    SELECT a.player_name, a.goals, a.assists, a.minutes_played, a.game_id, g.game_id, g.season
-                    FROM appearances a
-                    JOIN games g ON a.game_id = g.game_id
-                    WHERE g.season == {season_sel}
+                    SELECT player_name, goals, assists, minutes_played, season
+                    FROM football.`gold-football-data`.appearances_gold
+                    WHERE season == {season_sel} 
                     """)
-            
-            
             
 
             #Valor de mercado
-            valuations_filtered = player_valuations_year[player_valuations_year["season"] == season_sel]
-            valuations_filtered = pd.merge(
-                valuations_filtered[["player_id", "market_value_in_eur"]],
-                dl.load_data("SELECT player_id, name FROM players"),
-                left_on="player_id",
-                right_on="player_id",
-            )
+            #valuations_filtered = player_valuations_year[player_valuations_year["season"] == season_sel][["player_id", "market_value_in_eur"]]
+            valuations_filtered = dl.load_data(f"""
+                                                SELECT player_name,
+                                                MAX(market_value_in_eur) AS market_value_in_eur
+                                                FROM football.`gold-football-data`.player_valuations_gold
+                                                WHERE season == {season_sel}
+                                                GROUP BY player_name
+                                                ORDER BY market_value_in_eur DESC
+                                                LIMIT 10
+                                                """)
+         
+            
             
         #RESTO DE RANKINGS 
         if ranking_sel == "market_value":
             
             #RANKING VALOR DE MERCADO
             ranking_marketvalue = (
-            valuations_filtered[["name", "market_value_in_eur"]]
-            .groupby("name", as_index=False)  # agrupa por jugador
-            .max()  
-            .reset_index(drop=True)
-            .sort_values(by="market_value_in_eur", ascending=False)
-            .head(10)   
-            .rename(columns= {"name": "Nombre", "market_value_in_eur":"Valor de mercado(€)"})
+            valuations_filtered[["player_name", "market_value_in_eur"]] 
+            .reset_index(drop=True)  
+            .rename(columns= {"player_name": "Nombre", "market_value_in_eur":"Valor de mercado(€)"})
             )
             st.subheader(title)
             st.dataframe(ranking_marketvalue, hide_index=True)
         else:
             #RANKINGS GOLES, ASISTENCIAS, MINUTOS
             ranking = (
-                appearances_filtered.groupby("player_name")[ranking_sel].sum()
-                .reset_index()
+                appearances_filtered[["player_name", ranking_sel]]
+                .groupby("player_name", as_index=False)[[ranking_sel]].sum()
                 .sort_values(by=ranking_sel, ascending=False)
                 .head(10)
             )

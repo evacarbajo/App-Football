@@ -16,8 +16,8 @@ def main():
     # FILTRAR LA LISTA DE CLUBS SEGÚN EL TEXTO INTRODUCIDO
     clubs_filtered = dl.load_data(
         f"""
-        SELECT name, club_id FROM clubs
-        WHERE name LIKE '%{search_club}%'
+        SELECT name, club_id FROM football.`gold-football-data`.clubs_gold
+        WHERE LOWER(name) LIKE '%{search_club}%'
         ORDER BY name
         """
     )["name"].unique()
@@ -28,7 +28,7 @@ def main():
     
     clubs_filtered = dl.load_data(f""" 
             SELECT club_id, name, domestic_competition_id,stadium_name, stadium_seats, squad_size, average_age
-            FROM clubs
+            FROM football.`gold-football-data`.clubs_gold
             WHERE name = '{club_sel}'
             """)
 
@@ -40,7 +40,7 @@ def main():
     domestic_comp_club = clubs_filtered["domestic_competition_id"].iloc[0]
     competition_filtered = dl.load_data(F"""
                 SELECT competition_id, name
-                FROM competitions
+                FROM football.`gold-football-data`.competitions_gold
                 WHERE competition_id = '{domestic_comp_club}'
                 """)
     competition_name = competition_filtered['name'].iloc[0]
@@ -64,10 +64,9 @@ def main():
     #FILTRAR PARTIDOS DEL CLUB
     club_id = clubs_filtered["club_id"].iloc[0]
     games_filtered =  dl.load_data(f"""
-            SELECT cg.game_id, cg.club_id, cg.is_win, cg.hosting, g.season, g.competition_id, date
-            FROM club_games cg
-            JOIN games g ON cg.game_id = g.game_id
-            WHERE cg.club_id = {club_id}
+            SELECT game_id, club_id, is_win, hosting, season, competition_id, date
+            FROM football.`gold-football-data`.club_games_gold 
+            WHERE club_id = {club_id}
                     """)            
     
     
@@ -83,12 +82,11 @@ def main():
     #FILTRAR POR COMPETICIÓN 
     comp_filtered = dl.load_data(f"""
         SELECT DISTINCT c.competition_id, c.name
-        FROM competitions c
+        FROM football.`gold-football-data`.competitions_gold c
         JOIN (
-            SELECT g.competition_id
-            FROM club_games cg
-            JOIN games g ON cg.game_id = g.game_id
-            WHERE cg.club_id = {club_id}                             
+            SELECT competition_id
+            FROM football.`gold-football-data`.club_games_gold
+            WHERE club_id = {club_id}                             
         ) AS fg
         ON c.competition_id = fg.competition_id
     """)
@@ -209,7 +207,7 @@ def main():
     #MINUTOS EN LOS QUE RECIBEN MÁS GOLES
     games_events_filtered = dl.load_data(f"""
                 SELECT game_id, type, minute
-                FROM game_events
+                FROM football.`gold-football-data`.game_events_gold
                 WHERE club_id = {club_id}
                 AND type = 'Goals'
                 """)

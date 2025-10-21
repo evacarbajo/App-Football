@@ -20,7 +20,7 @@ def main():
     players_filtered = dl.load_data(
         f"""
         SELECT name, player_id FROM football.`gold-football-data`.players_gold
-        WHERE name LIKE '%{search_player}%'
+        WHERE LOWER(name) LIKE '%{search_player}%'
         ORDER BY name
         """
     )["name"].unique()
