@@ -27,8 +27,6 @@ if "myclub_id" not in st.session_state:
     st.session_state.myclub_id = ""
     
     
-
-
 if not st.session_state.myclub_id:
 
     with col_c1:
@@ -43,7 +41,6 @@ if not st.session_state.myclub_id:
         ORDER BY name
         """
         )
-    #["name"].unique()
    
 
     with col_c2:
