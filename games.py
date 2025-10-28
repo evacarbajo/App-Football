@@ -47,6 +47,32 @@ def main():
             "aggregate": "Resultado"
         }
     )
+
+
+    # Diccionario traduccion posiciones
+    pos_translate = {
+                "Goalkeeper": "Portero",
+                "Defender": "Defensa",
+                "Attack": "Delantero",
+                "Left-Back": "Lateral izquierdo",
+                "Centre-Back": "Defensa central",
+                "Right-Back": "Lateral derecho",
+                "Midfield": "Centrocampista",
+                "Attacking Midfield": "Mediapunta",
+                "Central Midfield": "Mediocentro",
+                "Right Midfield": "Centrocampista derecho",
+                "Left Midfield": "Centrocampista izquierdo",
+                "Defensive Midfield": "Mediocentro defensivo",
+                "Centre-Forward": "Delantero centro",
+                "Second Striker": "Segundo delantero",
+                "Right Winger": "Extremo derecho",
+                "Left Winger": "Extremo izquierdo"
+
+                }
+    type_translate = {
+        "starting_lineup": "Titular",
+        "substitutes": "Suplentes"
+    }
     
 
 
@@ -66,15 +92,18 @@ def main():
             clubs_names = games_lineup_filtered["club_name"].unique().tolist()
             team_sel = st.selectbox("Selecciona un equipo para mostrar alineación", clubs_names)
             games_lineup_filtered = games_lineup_filtered[games_lineup_filtered["club_name"] == team_sel]
+            games_lineup_filtered["posicion_trans"] = games_lineup_filtered["position"].map(pos_translate).fillna(games_lineup_filtered["position"])
+            games_lineup_filtered["type_trans"] = games_lineup_filtered["type"].map(type_translate).fillna(games_lineup_filtered["type"])
+           
             
             #Alineación
             st.subheader("Alineación del partido:")
-            st.dataframe(games_lineup_filtered[["player_name", "type", "position", "number"]],
+            st.dataframe(games_lineup_filtered[["player_name", "type_trans", "posicion_trans", "number"]],
                 hide_index=True,
                 column_config={
                     "player_name": "Nombre",
-                    "type": "Titularidad", 
-                    "position": "Posición", 
+                    "type_trans": "Titularidad", 
+                    "posicion_trans": "Posición", 
                     "number": "Dorsal"
                 }
                 )

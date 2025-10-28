@@ -200,7 +200,14 @@ def main():
             if transfers_filtered.empty :
                 st.write("No hay datos sobre la trayectoria del jugador")
             else:
-                st.dataframe(transfers_filtered[["transfer_season","from_club_name", "to_club_name", "transfer_fee"]])
+                st.dataframe(
+                            transfers_filtered[["transfer_season","from_club_name", "to_club_name", "transfer_fee"]],
+                            column_config={
+                                 "transfer_season": "Temporada de traspaso",
+                                 "from_club_name": "Club origen",
+                                 "to_club_name": "Club destino",
+                                 "transfer_fee": "Valor del traspaso"
+                            })
                 
 
 
