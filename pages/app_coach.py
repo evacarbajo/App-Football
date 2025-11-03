@@ -36,8 +36,8 @@ if not st.session_state.myclub_id:
     # FILTRAR LA LISTA DE CLUBS SEGÚN EL TEXTO INTRODUCIDO
     clubs_filtered = dl.load_data(
         f"""
-        SELECT name, club_id FROM clubs
-        WHERE name LIKE '%{clubs_filter}%'
+        SELECT name, club_id FROM football.`gold-football-data`.clubs_gold
+        WHERE LOWER(name) LIKE LOWER('%{clubs_filter}%')
         ORDER BY name
         """
         )
@@ -66,7 +66,7 @@ else:
         # Si ya hay un equipo guardado → mostrar solo el nombre
         #st.subheader(f"Tu equipo: **{st.session_state.myclub}**")
         myclub_name_sel = dl.load_data(f"""
-        SELECT name FROM clubs
+        SELECT name FROM football.`gold-football-data`.clubs_gold
         WHERE club_id == {st.session_state.myclub_id}
         """
         )["name"].iloc[0]

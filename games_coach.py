@@ -10,24 +10,32 @@ def main():
    
         col1, col2 = st.columns(2)
 
-        # SELECTOR DE COMPETICIÓN FILTRADO POR MAJOR COMPETITIONS
-        major_competitions = dl.load_data("SELECT competition_id, name  FROM competitions WHERE is_major_national_league = 'true'")
+        #FILTRAR POR TEMPORADA
+
+        season_options =dl.load_data(f"""SELECT DISTINCT season FROM football.`gold-football-data`.games_gold 
+                                            WHERE (home_club_id = '{my_club}' OR away_club_id = '{my_club}')
+                                            ORDER BY season DESC""")
         with col1:
-            comp_sel = st.selectbox("Selecciona una competición", major_competitions["name"].unique())
-        comp_id = major_competitions.loc[major_competitions["name"] == comp_sel, "competition_id"].values[0]
-
-        
-        games_filtered = dl.load_data(f"""SELECT * FROM games 
-                                            WHERE competition_id = '{comp_id}'
-                                            AND (home_club_id = '{my_club}' OR away_club_id = '{my_club}')""")
-
-        #FILTRAR POR AÑOS
-        season_options = sorted(games_filtered["season"].dropna().unique().tolist())
-        with col2:
             season_sel = st.selectbox("Selecciona temporada", season_options, key="game_season")
-        games_filtered = games_filtered[games_filtered["season"] == season_sel]
+        #games_filtered = games_filtered[games_filtered["season"] == season_sel]
         
 
+        # SELECTOR DE COMPETICIÓN FILTRADO POR MAJOR COMPETITIONS
+        major_competitions = dl.load_data(f"""SELECT competition_id, competition_name FROM football.`gold-football-data`.games_gold 
+                                            WHERE (home_club_id = '{my_club}' OR away_club_id = '{my_club}')
+                                            AND season = {season_sel}""")
+
+        with col2:
+            comp_sel = st.selectbox("Selecciona una competición", major_competitions["competition_name"].unique())
+        comp_id = major_competitions.loc[major_competitions["competition_name"] == comp_sel, "competition_id"].values[0]
+
+        
+        games_filtered = dl.load_data(f"""SELECT * FROM football.`gold-football-data`.games_gold 
+                                            WHERE competition_id = '{comp_id}'
+                                            AND (home_club_id = '{my_club}' OR away_club_id = '{my_club}')
+                                            AND season = {season_sel}""")
+
+        
         #NUMERO DE PARTIDOS POR COMPETICIÓN 
         st.write(f"**Número de partidos totales en {comp_sel} en {season_sel}:** {len(games_filtered)}")
 
@@ -36,9 +44,10 @@ def main():
         #round_sorted = sorted(round_option, key=lambda x: int(x.split(".")[0]))
         #round_sel = st.selectbox("**Selecciona jornada**", round_sorted)
         #games_filtered = games_filtered[games_filtered["round"] == round_sel]
-        games_filtered["round"] = ( games_filtered["round"].str.extract(r"(\d+)").astype(int))
+        #games_filtered["round"] = ( games_filtered["round"].str.extract(r"(\d+)").astype(int))
 
-        games_filtered = games_filtered.sort_values(by="round").reset_index(drop=True)
+
+        games_filtered = games_filtered.sort_values(by="date").reset_index(drop=True)
 
 
         #Mostrar partidos 
@@ -70,10 +79,9 @@ def main():
 
             #FILTRAR POR EQUIPO
             games_lineup_filtered = dl.load_data(f"""
-                    SELECT gl.player_name, gl.type, gl.position, gl.number, gl.club_id, c.name AS club_name
-                    FROM game_lineups gl
-                    JOIN clubs c ON gl.club_id = c.club_id
-                    WHERE gl.game_id = {game_id}        
+                    SELECT player_name, type, position, number, club_id, club_name
+                    FROM football.`gold-football-data`.game_lineups_gold
+                    WHERE game_id = {game_id}        
                     """)
             if not games_lineup_filtered.empty:
                 clubs_names = games_lineup_filtered["club_name"].unique().tolist()
