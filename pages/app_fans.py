@@ -5,7 +5,7 @@ import rankings
 import clubs
 import transfers
 
-st.logo("/Users/evacarbajo/footballs.jpg")
+st.logo("footballs.jpg")
 
 #USAR TODO ANCHO DE PANTALLA
 st.set_page_config(page_title="App Fútbol", layout="wide")

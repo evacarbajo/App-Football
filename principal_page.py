@@ -6,7 +6,7 @@ _,col2= st.columns([0.3, 0.7])
 
 with col2:
     st.title("APP FOOTBALL")
-    st.image("/Users/evacarbajo/footballs.jpg", width=270)
+    st.image("footballs.jpg", width=270)
 
     
    
