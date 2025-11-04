@@ -6,20 +6,30 @@ def main():
    
     col1, col2 = st.columns(2)
 
+
+
+    #FILTRAR POR TEMPORADAS
+
+    season_options = dl.load_data(f"""SELECT DISTINCT season
+                                    FROM football.`gold-football-data`.games_gold 
+                                    ORDER BY season DESC
+                                    """)
+  
+    with col1:
+        season_sel = st.selectbox("Selecciona temporada", season_options, key="game_season")
+   
     # SELECTOR DE COMPETICIÓN FILTRADO POR MAJOR COMPETITIONS
     major_competitions = dl.load_data("SELECT competition_id, competition_name  FROM football.`gold-football-data`.games_gold WHERE is_major_national_league = 'true'")
-    with col1:
+    with col2:
         comp_sel = st.selectbox("Selecciona una competición", major_competitions["competition_name"].unique())
     comp_id = major_competitions.loc[major_competitions["competition_name"] == comp_sel, "competition_id"].values[0]
 
-    games_filtered = dl.load_data(f"SELECT * FROM football.`gold-football-data`.games_gold WHERE competition_id = '{comp_id}'")
 
-
-    #FILTRAR POR AÑOS
-    season_options = sorted(games_filtered["season"].dropna().unique().tolist())
-    with col2:
-        season_sel = st.selectbox("Selecciona temporada", season_options, key="game_season")
-    games_filtered = games_filtered[games_filtered["season"] == season_sel]
+    games_filtered = dl.load_data(f"""SELECT * 
+                                 FROM football.`gold-football-data`.games_gold 
+                                 WHERE competition_id = '{comp_id}'
+                                 AND season = {season_sel}
+                                 """)
     
 
     #NUMERO DE PARTIDOS POR COMPETICIÓN 
