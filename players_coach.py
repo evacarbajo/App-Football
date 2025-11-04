@@ -20,7 +20,7 @@ def main():
         # FILTRAR LA LISTA DE JUGADORES SEGÚN SU EQUIPO 
         players_filtered = dl.load_data(
             f"""
-            SELECT * FROM players
+            SELECT * FROM football.`gold-football-data`.players_gold
             WHERE current_club_id == {my_club}
             AND last_season == 2024
             ORDER BY name
@@ -132,10 +132,9 @@ def main():
 
             player_id = player["player_id"]
 
-            appearances_filtered = dl.load_data(f"""SELECT a.*, g.season
-                                                FROM appearances a
-                                                JOIN games g ON a.game_id = g.game_id
-                                                WHERE a.player_id = {player_id}
+            appearances_filtered = dl.load_data(f"""SELECT *
+                                                FROM football.`gold-football-data`.appearances_gold
+                                                WHERE player_id = {player_id}
                                                 """)
             
             #RENDIMIENTO 
@@ -148,30 +147,29 @@ def main():
             #if season_sel != "Todas":
             appearances_filtered = dl.load_data(
                     f"""
-                    SELECT a.*, g.season
-                    FROM appearances a
-                    JOIN games g ON a.game_id = g.game_id
-                    WHERE a.player_id = {player_id}
-                    AND g.season = '{season_sel}'
+                    SELECT *
+                    FROM football.`gold-football-data`.appearances_gold
+                    WHERE player_id = {player_id}
+                    AND season = '{season_sel}'
                     """
             )
             
 
             col1, col2, col3, col4 = st.columns(4, border=True)
             #Goles
-            total_goals = appearances_filtered["goals"].sum()
+            total_goals = appearances_filtered["goals"]
             with col3:
                 st.metric(f"**Goles totales:**", total_goals)
             #Asistencias
-            total_assists = appearances_filtered["assists"].sum()
+            total_assists = appearances_filtered["assists"]
             with col4:
                 st.metric(f"**Asistencias totales:**", total_assists)
             #Partidos 
-            games = len(appearances_filtered["game_id"].unique())
+            games = appearances_filtered["games_played"]
             with col1:  
                 st.metric(f"**Partidos jugados:**", games)
             #Media de minutos por partido
-            games_minutes = appearances_filtered["minutes_played"].sum() // games
+            games_minutes = appearances_filtered["minutes_played"] // games
             with col2: 
                 st.metric(f"**Media de minutos por partido:**", games_minutes)
             #goals_minutes = total_goals/total_minutes
@@ -180,7 +178,7 @@ def main():
             #VALOR DE MERCADO
             st.subheader("Evolución del valor de mercado:")
             players_valuation_filtered = dl.load_data(
-                f"SELECT date, market_value_in_eur FROM player_valuations WHERE player_id = {player_id}"
+                f"SELECT date, market_value_in_eur FROM football.`gold-football-data`.player_valuations_gold WHERE player_id = {player_id}"
             )
             players_valuation_filtered["date"] = pd.to_datetime(players_valuation_filtered["date"]).dt.date
             container_market_value = st.container(border=True)
@@ -193,7 +191,7 @@ def main():
             transfers_filtered = dl.load_data(
                 f"""
                 SELECT *
-                FROM transfers
+                FROM football.`gold-football-data`.transfers_gold
                 WHERE player_id = {player_id}
                 """
             )
@@ -224,9 +222,8 @@ def main():
 
 
             #FILTRAR POR AÑOS
-            appearances_filtered = dl.load_data(f"""SELECT a.*, g.season
-                                                FROM appearances a
-                                                JOIN games g ON a.game_id = g.game_id
+            appearances_filtered = dl.load_data(f"""SELECT *
+                                                FROM football.`gold-football-data`.appearances_gold
                                                 """)
             season_options = sorted(appearances_filtered["season"].unique().tolist())
             season_options = ["Todas"] + season_options
@@ -245,20 +242,18 @@ def main():
                     if season_sel != "Todas":
                         appearances_filtered = dl.load_data(
                             f"""
-                            SELECT a.*, g.season
-                            FROM appearances a
-                            JOIN games g ON a.game_id = g.game_id
-                            WHERE a.player_id = {player_id}
-                            AND g.season = '{season_sel}'
+                            SELECT *
+                            FROM football.`gold-football-data`.appearances_gold
+                            WHERE player_id = {player_id}
+                            AND season = '{season_sel}'
                             """
                         )
                     else:
                         appearances_filtered = dl.load_data(
                             f"""
-                            SELECT a.*, g.season
-                            FROM appearances a
-                            JOIN games g ON a.game_id = g.game_id
-                            WHERE a.player_id = {player_id}
+                            SELECT *
+                            FROM football.`gold-football-data`.appearances_gold
+                            WHERE player_id = {player_id}
 
                             """
                         )
@@ -270,21 +265,21 @@ def main():
                     if not appearances_filtered.empty:
 
                         #GOLES
-                        total_goals = appearances_filtered["goals"].sum()
+                        total_goals = appearances_filtered["goals"]
                         st.metric(f"**Goles totales:**", total_goals)
 
                         #ASISTENCIAS
-                        total_assists = appearances_filtered["assists"].sum()
+                        total_assists = appearances_filtered["assists"]
                         st.metric(f"**Asistencias totales:**", total_assists)
 
                         #PARTIDOS 
-                        games = len(appearances_filtered["game_id"].unique()) 
+                        games = appearances_filtered["games_played"]
                         st.metric(f"**Partidos jugados:**", games)
                         
                         
 
                         #MEDIA DE MINUTOS POR PARTIDO
-                        games_minutes = appearances_filtered["minutes_played"].sum() // games
+                        games_minutes = appearances_filtered["minutes_played"] // games
                         st.metric(f"**Media de minutos por partido:**", games_minutes)
                         #goals_minutes = total_goals/total_minutes
                     
