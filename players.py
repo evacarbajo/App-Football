@@ -20,7 +20,7 @@ def main():
     players_filtered = dl.load_data(
         f"""
         SELECT name, player_id FROM football.`gold-football-data`.players_gold
-        WHERE LOWER(name) LIKE '%{search_player}%'
+        WHERE LOWER(name) LIKE LOWER('%{search_player}%')
         ORDER BY name
         """
     )
@@ -125,12 +125,13 @@ def main():
         if transfers_filtered.empty :
             st.write("No hay datos sobre la trayectoria del jugador")
         else:
-            st.dataframe(transfers_filtered[["transfer_season","from_club_name", "to_club_name", "transfer_fee"]])
+            #st.dataframe(transfers_filtered[["transfer_season","from_club_name", "to_club_name", "transfer_fee"]])
             gp.graph_transfers(transfers_filtered)
             gpst.graph_transfers(transfers_filtered)
             
 
-
+        #RENDIMIENTO 
+        st.subheader("Rendimiento:")
 
         appearances_filtered = dl.load_data(f"SELECT * FROM football.`gold-football-data`.appearances_gold WHERE player_id = {player_id}")
 
@@ -141,30 +142,34 @@ def main():
         if season_sel != "Todas":
             appearances_filtered = dl.load_data(
                 f"""
-                SELECT a.*
-                FROM football.`gold-football-data`.appearances_gold a
-                WHERE a.player_id = {player_id}
-                AND a.season = '{season_sel}'
+                SELECT *
+                FROM football.`gold-football-data`.appearances_gold 
+                WHERE player_id = {player_id}
+                AND season = '{season_sel}'
                 """
             )
             
 
-        col1, col2, col3 = st.columns(3, border=True)
+        col1, col2, col3, col4 = st.columns(4, border=True)
+        
 
         #GOLES
         total_goals = appearances_filtered["goals"].sum()
-        with col1:
+        with col3:
             st.metric(f"**Goles totales:**", total_goals)
-
 
         #ASISTENCIAS
         total_assists = appearances_filtered["assists"].sum()
-        with col2:
+        with col4:
             st.metric(f"**Asistencias totales:**", total_assists)
 
-        #GOLES POR MINUTO
-        total_minutes = appearances_filtered["minutes_played"].sum()
-        with col3: 
-            st.metric(f"**Minutos totales:**", total_minutes)
-        goals_minutes = total_goals/total_minutes
+        #PARTIDOS
+        games = appearances_filtered["games_played"].sum()
+        with col1:  
+            st.metric(f"**Partidos jugados:**", games)
+
+        #MEDIA DE MINUTOS POR PARTIDO
+        games_minutes = appearances_filtered["minutes_played"].sum() // games
+        with col2: 
+                st.metric(f"**Media de minutos por partido:**", games_minutes)
 

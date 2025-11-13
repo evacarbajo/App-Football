@@ -39,7 +39,7 @@ def graph_transfers(transfers: pd.DataFrame):
     edge_styles = [EdgeStyle("PLAYS_FOR", caption="label", directed=True)]  
 
     # Mostrar grafo en Streamlit
-    st.markdown("## Grafo de Transferencias de Jugadores")
+    st.markdown("## Trayectoria")
     st_link_analysis(elements, layout="cose", node_styles=node_styles, edge_styles=edge_styles)
 
 
