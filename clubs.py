@@ -17,7 +17,7 @@ def main():
     clubs_filtered = dl.load_data(
         f"""
         SELECT name, club_id FROM football.`gold-football-data`.clubs_gold
-        WHERE LOWER(name) LIKE '%{search_club}%'
+        WHERE LOWER(name) LIKE LOWER('%{search_club}%')
         ORDER BY name
         """
     )["name"].unique()
@@ -99,9 +99,8 @@ def main():
 
 
    #FILTRAR POR RANGO DE FECHAS **Por defecto rango de temporada completa
-    games_filtered["date_time"] = pd.to_datetime(games_filtered["date"]).sort_values()
-    min_date = games_filtered["date_time"].min()
-    max_date = games_filtered["date_time"].max()
+    min_date = games_filtered["date"].min()
+    max_date = games_filtered["date"].max()
 
     date_range = st.date_input(
         "Selecciona rango de fechas",
@@ -115,8 +114,8 @@ def main():
 
 
     games_filtered = games_filtered[
-    (games_filtered["date_time"] >= pd.to_datetime(start_date)) &
-    (games_filtered["date_time"] <= pd.to_datetime(end_date))
+    (games_filtered["date"] >= start_date) &
+    (games_filtered["date"] <= end_date)
     ]
    
     st.subheader("Análisis de los partidos:")
