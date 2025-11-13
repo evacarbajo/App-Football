@@ -41,21 +41,25 @@ if not st.session_state.myclub_id:
         ORDER BY name
         """
         )
-   
-
-    with col_c2:
-        #SELECTBOX CON CLUBS FILTRADOS
-        myclub_name_sel = st.selectbox("Selecciona un club", clubs_filtered["name"].unique(), key= "global_club")
     
-    myclub_sel_id = clubs_filtered[clubs_filtered["name"] == myclub_name_sel]["club_id"].iloc[0]
+    if clubs_filtered.empty:
+        with col_c2:
+            myclub_name_sel = st.selectbox("Selecciona un club", ["No hay resultados"])
+            myclub_sel_id = None
+    else:
+        with col_c2:
+            #SELECTBOX CON CLUBS FILTRADOS
+            myclub_name_sel = st.selectbox("Selecciona un club", clubs_filtered["name"].unique(), key= "global_club")
 
-    with col_c3:
-        #Botón para guardar la selección
-        if st.button("Guardar equipo"):
-            st.session_state.myclub_id = myclub_sel_id
-            #st.success(f"Equipo guardado: {st.session_state.myclub}")
-            st.success(f"Equipo guardado: {myclub_name_sel}")
-            st.rerun()
+        myclub_sel_id = clubs_filtered[clubs_filtered["name"] == myclub_name_sel]["club_id"].iloc[0]
+
+        with col_c3:
+            #Botón para guardar la selección
+            if st.button("Guardar equipo"):
+                st.session_state.myclub_id = myclub_sel_id
+                #st.success(f"Equipo guardado: {st.session_state.myclub}")
+                st.success(f"Equipo guardado: {myclub_name_sel}")
+                st.rerun()
         
 
 else:
