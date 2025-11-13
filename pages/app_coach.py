@@ -6,7 +6,7 @@ import clubs_coach
 import transfers
 import data_loader as dl
 
-st.logo("/Users/evacarbajo/footballs.jpg")
+st.logo("footballs.jpg")
 
 #USAR TODO ANCHO DE PANTALLA
 st.set_page_config(page_title="App Fútbol", layout="wide")
