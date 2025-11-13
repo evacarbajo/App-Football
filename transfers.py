@@ -196,7 +196,7 @@ def main():
             dl.load_data("SELECT player_id, goals, season FROM football.`gold-football-data`.appearances_gold"),
             on="player_id"               
         )
-        season_options = goals["season"].unique().tolist()
+        season_options = sorted(goals["season"].unique().tolist())
         season_options = ["Todas"] + season_options
         with col_goals:
             st.subheader("Comparación goles:")
