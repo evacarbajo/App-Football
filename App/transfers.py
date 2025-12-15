@@ -10,44 +10,62 @@ def main():
     # Diccionario traduccion posiciones
     pos_translate = {
             "Goalkeeper": "Portero",
+            "Defender" : "Defensa",
             "Left-Back": "Lateral izquierdo",
             "Centre-Back": "Defensa central",
             "Right-Back": "Lateral derecho",
-            "Midfield": "Centrocampista",
+            "Midfield" : "Centrocampista",
             "Attacking Midfield": "Mediapunta",
             "Central Midfield": "Mediocentro",
             "Right Midfield": "Centrocampista derecho",
             "Left Midfield": "Centrocampista izquierdo",
             "Defensive Midfield": "Mediocentro defensivo",
+            "Attack": "Delantero",
             "Centre-Forward": "Delantero centro",
             "Second Striker": "Segundo delantero",
             "Right Winger": "Extremo derecho",
             "Left Winger": "Extremo izquierdo",
-            "Attack": "Delantero",
-            "Goalkeeper" : "Portero",
-            "Defender" : "Defensa",
-            "Midfield" : "Centrocampista"
         }
+    
+    
+    col1, col2 = st.columns(2)
 
-  
+    #FILTRAR POR EDAD
+    min_age, max_age = st.slider("Selecciona rango de edad", min_value=15, max_value= int(60), value=(20,25))
+    
+    #FILTRAR POR VALOR DE MERCADO
+    min_value, max_value = st.slider("Selecciona rango de valor de mercado", 
+                                    
+                                     max_value= 300000000, 
+                                     value=(20000000, 50000000),
+                                     step=1000000)
+    # Mostrar los valores seleccionados con separador de miles
+    st.write(f"Rango valor de mercado: {min_value:,}€  - {max_value:,}€".replace(",", "."))
 
-    #players = dl.players.copy()
-    players = dl.load_data("SELECT * FROM players")
 
+    players = dl.load_data(f"""SELECT *
+                                FROM football.`gold-football-data`.players_gold 
+                                WHERE
+                                age BETWEEN {min_age} AND {max_age} AND
+                                market_value_in_eur BETWEEN {min_value} AND {max_value}
+                           """)
+    
+    players_valuation = dl.load_data(f"""SELECT p.*, pv.date, pv.market_value_in_eur as market_value
+                                FROM football.`gold-football-data`.players_gold p
+                                JOIN football.`gold-football-data`.player_valuations_gold pv
+                                ON p.player_id = pv.player_id
+                                WHERE
+                                age BETWEEN {min_age} AND {max_age} AND
+                                p.market_value_in_eur BETWEEN {min_value} AND {max_value}
+                           """)
+    
+    
     #AÑADIR COLUMNAS CON LAS POSICIONES EN ESPAÑOL
     players["position_translate"] = players["position"].map(pos_translate).fillna(players["position"])
     players["sub_position_translate"] = players["sub_position"].map(pos_translate).fillna(players["sub_position"])
+
     
-    #AÑADIR COLUMNA CON LA EDAD
-    players["date_of_birth"] = pd.to_datetime(players["date_of_birth"])
-    today = date.today()
-    players["age"] = players["date_of_birth"].apply(   
-    lambda x: today.year - x.year - ((today.month, today.day) < (x.month, x.day))
-    )
-
-
     #FILTRAR POR POSITION Y SUB-POSITION
-    col1, col2 = st.columns(2)
     #Position
     with col1: 
         position_options = ["Todas"] + players["position_translate"].unique().tolist()
@@ -61,58 +79,35 @@ def main():
     if sub_position_sel != "Todas":
         players = players[players["sub_position_translate"] == sub_position_sel]
 
-
-    #FILTRAR POR EDAD
-    min_age, max_age = st.slider("Selecciona rango de edad", min_value=int(players["age"].min()), max_value= int(players["age"].max()), value=(20,25))
-    players = players[(players["age"] >= min_age) & (players["age"] <= max_age)  ]
     
-    #FILTRAR POR VALOR DE MERCADO
-    min_value, max_value = st.slider("Selecciona rango de valor de mercado", 
-                                     #min_value=int(players["market_value_in_eur"].min()), 
-                                     max_value= int(players["market_value_in_eur"].max()), 
-                                     value=(20000000, 50000000),
-                                     step=1000000)
-    players = players[(players["market_value_in_eur"] >= min_value) & (players["market_value_in_eur"] <= max_value)  ]
-    # Mostrar los valores seleccionados con separador de miles
-    st.write(f"Rango valor de mercado: {min_value:,}€  - {max_value:,}€".replace(",", "."))
-
 
     #FILTRAR POR COMPETICIÓN
-    players = pd.merge (
-        players,
-        dl.load_data("SELECT competition_id, name FROM competitions"),
-        left_on= "current_club_domestic_competition_id",
-        right_on="competition_id"
-    ).rename(columns={"name_x":"name", "name_y": "name_competition"})
-    comp_options = ["Todas"] + players["name_competition"].unique().tolist()
+    comp_options = dl.load_data("""
+                                SELECT DISTINCT competition_name 
+                                FROM football.`gold-football-data`.players_gold
+                                """)
+    comp_options = comp_options["competition_name"].dropna().tolist()
+    comp_options = ["Todas"] + comp_options
     comp_sel = st.selectbox("Selecciona competición:", comp_options, key="transfers_comp")
     if comp_sel != "Todas":
-        players = players[players["name_competition"]== comp_sel]
+        players = players[players["competition_name"]== comp_sel]
+    
     
    
     #CREAR LISTA ORDENADA CON LA EVOLUCIÓN DE LOS VALORES DE MERCADO
-    player_id = players["player_id"]
-    player_valuations = dl.load_data("SELECT * FROM player_valuations")
-    player_valuations = player_valuations[player_valuations["player_id"].isin(player_id)]
-    player_valuations["date"] = pd.to_datetime(player_valuations["date"])
     player_valuations = (
-        player_valuations.sort_values(["player_id", "date"])
-        .groupby("player_id")["market_value_in_eur"]
+        players_valuation.sort_values(["player_id", "date"])
+        .groupby("player_id")["market_value"]
         .apply(list)
         .reset_index(name="market_value_history")
     )
 
-    
     #MERGE DE JUGADORES CON SU EVOLUCIÓN DEL VALOR DE MERCADO
     players = pd.merge (
         players,
         player_valuations,
         on="player_id"
     )
-
-    players["contract_expiration_date"] = pd.to_datetime(players["contract_expiration_date"])
-
-  
 
     #TABLA CON DATOS DE INTERES DE JUGADORES
     selected_players = st.dataframe(
@@ -194,30 +189,21 @@ def main():
             st.subheader("**Comparación del valor de mercado:**")
             st.bar_chart(val_mercado)
 
-       
-
 
         #BAR CHAR GOLES
         goals = pd.merge(
             players_sel[["player_id", "name"]],
-            dl.load_data("SELECT player_id, goals, game_id FROM appearances"),
+            dl.load_data("SELECT player_id, goals, season FROM football.`gold-football-data`.appearances_gold"),
             on="player_id"               
         )
-        season_options = pd.merge(
-                    dl.load_data("SELECT season, game_id FROM games WHERE season IS NOT NULL ORDER BY season"),
-                    goals[["game_id"]], 
-                    on = "game_id"            
-                    )["season"].unique().tolist()
+        season_options = sorted(goals["season"].unique().tolist())
         season_options = ["Todas"] + season_options
         with col_goals:
             st.subheader("Comparación goles:")
             season_sel = st.selectbox("Selecciona temporada", season_options, key="transfers_season")
         if season_sel != "Todas":
-            goals = pd.merge(
-                goals,
-                dl.load_data(f"SELECT game_id, season FROM games WHERE season = {season_sel}"),
-                on= "game_id"                
-                )
+            goals = goals[goals["season"]== season_sel]
+
         total_goals = goals.groupby(
                 ["player_id", "name"], as_index=False
                     )["goals"].sum()
