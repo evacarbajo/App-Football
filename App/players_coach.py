@@ -198,6 +198,7 @@ def main():
             if transfers_filtered.empty :
                 st.write("No hay datos sobre la trayectoria del jugador")
             else:
+                gpst.graph_transfers(transfers_filtered)
                 st.dataframe(
                             transfers_filtered[["transfer_season","from_club_name", "to_club_name", "transfer_fee"]],
                             column_config={

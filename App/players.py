@@ -126,7 +126,7 @@ def main():
             st.write("No hay datos sobre la trayectoria del jugador")
         else:
             #st.dataframe(transfers_filtered[["transfer_season","from_club_name", "to_club_name", "transfer_fee"]])
-            gp.graph_transfers(transfers_filtered)
+            #gp.graph_transfers(transfers_filtered)
             gpst.graph_transfers(transfers_filtered)
             
 
