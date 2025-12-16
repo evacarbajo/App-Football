@@ -73,7 +73,7 @@ def main():
             row_idx = selected_game["selection"]["rows"][0]
             game_id = games_filtered.iloc[row_idx]["game_id"]
         
-            st.write(game_id)
+            
 
             
 
